@@ -1,16 +1,16 @@
 class Grabacion
 instance variables
   id_grab : nat := 0;
-  tipo : String := "";
+  tipo : seq of char := "";
   duracion_min : nat := 0;
   duracion_seg : nat := 0;
-  datos : seq of Byte := [];
+  datos : seq of int := [];
 
-inv duracion_valid (duracion_min >= 0 and duracion_seg >= 0 and duracion_seg < 60);
+inv (duracion_min >= 0 and duracion_seg >= 0 and duracion_seg < 60);
 
 operations
   -- Constructor para Grabacion
-  public Grabacion: nat * String * nat * nat * seq of Byte ==> Grabacion
+  public Grabacion: nat * seq of char * nat * nat * seq of int ==> Grabacion
   Grabacion(id_g, t, dur_min, dur_seg, dts) ==
   (
     id_grab := id_g;
@@ -32,7 +32,7 @@ pre dur_min >= 0 and dur_seg >= 0 and dur_seg < 60;
     return len datos = 0;
 
   -- Obtener una muestra de los datos (primeros 100 bytes)
-  public ObtenerMuestra: () ==> seq of Byte
+  public ObtenerMuestra: () ==> seq of int
   ObtenerMuestra() ==
     return if len datos > 100 then datos(1,...,100) else datos;
 
@@ -47,6 +47,6 @@ pre dur_min >= 0 and dur_seg >= 0 and dur_seg < 60;
   -- Comprimir datos *prototipo*
   public ComprimirDatos: () ==> ()
   ComprimirDatos() ==
-    datos := [d | d in seq datos & d <> 0];
+    datos := [d* d <> 0];
 end Grabacion
 
