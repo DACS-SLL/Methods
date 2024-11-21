@@ -1,20 +1,92 @@
+class Date
+instance variables
+  year : nat;
+  month : nat;
+  day : nat;
+
+inv 
+  year > 0 and
+  month >= 1 and month <= 12 and
+  day >= 1 and day <= DaysInMonth(year, month);
+
+operations
+  -- Constructor para Date
+  public Date: nat * nat * nat ==> Date
+  Date(y, m, d) ==
+  (
+    year := y;
+    month := m;
+    day := d
+  )
+pre y > 0 and m >= 1 and m <= 12 and d >= 1 and d <= DaysInMonth(y, m);
+
+  -- Calcular la cantidad de días en un mes específico
+  private DaysInMonth: nat * nat ==> nat
+  DaysInMonth(y, m) ==
+    if m in set {1, 3, 5, 7, 8, 10, 12} then return 31
+    elseif m in set {4, 6, 9, 11} then return 30
+    elseif m = 2 then
+      if (y mod 4 = 0 and y mod 100 <> 0) or y mod 400 = 0 then return 29
+      else return 28
+    else return 0;
+end Date
+
+class Time
+instance variables
+  hour : nat;
+  minute : nat;
+  second : nat;
+
+inv
+  hour >= 0 and hour < 24 and
+  minute >= 0 and minute < 60 and
+  second >= 0 and second < 60;
+
+operations
+  -- Constructor para Time
+  public Time: nat * nat * nat ==> Time
+  Time(h, m, s) ==
+  (
+    hour := h;
+    minute := m;
+    second := s
+  )
+pre h >= 0 and h < 24 and m >= 0 and m < 60 and s >= 0 and s < 60;
+
+  -- Getter para la hora
+  public GetHour: () ==> nat
+  GetHour() ==
+    return hour;
+
+  -- Getter para el minuto
+  public GetMinute: () ==> nat
+  GetMinute() ==
+    return minute;
+
+  -- Getter para el segundo
+  public GetSecond: () ==> nat
+  GetSecond() ==
+    return second;
+end Time
+
 class RegistroT
 instance variables
   id_regis : nat := 0;
-  numero_origen : String := "";
-  numero_destino : String := "";
+  numero_origen : seq of char := "";
+  numero_destino : seq of char := "";
   duracion_min : nat := 0;
   duracion_seg : nat := 0;
   fecha : Date;
   hora : Time;
 
-inv duracion_valid (duracion_min >= 0 and duracion_seg >= 0 and duracion_seg < 60);
-inv numeros_validos* len numero_origen = 10 and len numero_destino = 10 and 
-                      forall ch in set elems numero_origen union elems numero_destino & isdigit(ch);
+inv 
+  duracion_min >= 0 and duracion_seg >= 0 and duracion_seg < 60 and
+  len numero_origen = 10 and len numero_destino = 10 and 
+  forall ch in set elems (numero_origen ^ numero_destino) & EsDigito(ch);
 
 operations
   -- Constructor para RegistroT
-  public RegistroT: nat * String * String * nat * nat * Date * Time ==> RegistroT
+  public RegistroT: nat * seq of char * seq of char * nat * nat * Date * Time ==> RegistroT
   RegistroT(id_r, num_ori, num_dest, dur_min, dur_seg, f, h) ==
   (
     id_regis := id_r;
@@ -26,28 +98,37 @@ operations
     hora := h
   )
 pre dur_min >= 0 and dur_seg >= 0 and dur_seg < 60 and len num_ori = 10 and len num_dest = 10 and 
-    forall ch in set elems num_ori union elems num_dest & isdigit(ch);
+    forall ch in set elems (num_ori ^ num_dest) & EsDigito(ch);
 
   -- Calcular la duración total en segundos
   public DuracionTotal: () ==> nat
   DuracionTotal() ==
     return duracion_min * 60 + duracion_seg;
 
-  -- Verificar si la llamada es sospechosa (Tomando en cuenta que dura más de 30min)
+  -- Verificar si la llamada es sospechosa (duración mayor a 30 minutos)
   public EsSospechosa: () ==> bool
   EsSospechosa() ==
     return DuracionTotal() > 30 * 60;
 
   -- Clasificar la llamada por duración
-  public ClasificarLlamada: () ==> String
+  public ClasificarLlamada: () ==> seq of char
   ClasificarLlamada() ==
-    let duracion = DuracionTotal() in
-    exit if duracion < 60 then "Corta"
-    elseif duracion < 300 then "Media"
-    else "Larga";
+    (let duracion = DuracionTotal() in
+      if duracion < 60 then
+        return "Corta"
+      elseif duracion < 300 then
+        return "Media"
+      else
+        return "Larga");
 
-  -- Verificar si la llamada ocurrió en horario de madrugada
+  -- Verificar si la llamada ocurrió en horario nocturno
   public EsLlamadaNocturna: () ==> bool
   EsLlamadaNocturna() ==
-    return hora.hour >= 22 or hora.hour < 6;
+    return hora.GetHour() >= 22 or hora.GetHour() < 6;
+
+  -- Función para verificar si un carácter es un dígito
+  private EsDigito: char ==> bool
+  EsDigito(ch) ==
+    return ch in set {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 end RegistroT
+
