@@ -1,0 +1,41 @@
+-- Modelo de análisis forense digital con máquina de 2 estados
+-- Estados: Normal y Sospechoso
+
+MODULE main
+VAR
+  estado : {Normal, Sospechoso};
+  
+  actividad_sospechosa : boolean;
+  investigacion_realizada : boolean;
+
+INIT
+  estado = Normal &
+  actividad_sospechosa = FALSE &
+  investigacion_realizada = FALSE;
+
+TRANS
+  (estado = Normal & actividad_sospechosa = TRUE) -> next(estado) = Sospechoso;
+
+  (estado = Sospechoso & investigacion_realizada = TRUE) -> next(estado) = Normal;
+
+  !( (estado = Normal & actividad_sospechosa = TRUE) | (estado = Sospechoso & investigacion_realizada = TRUE) ) -> next(estado) = estado;
+
+ASSIGN
+  next(actividad_sospechosa) := case
+    estado = Normal : {TRUE, FALSE};
+    TRUE : actividad_sospechosa;
+  esac;
+
+  next(investigacion_realizada) := case
+    estado = Sospechoso : {TRUE, FALSE};
+    TRUE : investigacion_realizada;
+  esac;
+
+SPEC
+  AG (actividad_sospechosa -> estado = Sospechoso)
+
+SPEC
+  AG (estado = Sospechoso -> AF investigacion_realizada)
+
+SPEC
+  AG ( (estado = Sospechoso & investigacion_realizada) -> AX estado = Normal )
