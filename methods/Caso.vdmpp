@@ -1,0 +1,101 @@
+class Caso
+types
+  String = seq1 of char;
+
+instance variables
+  sop_jid : nat := 0;
+  nombre : String := "";
+  id_policia : nat := 0;
+  telefono : String := "";
+  llamadas : seq of RegistroT := [];
+  mensajes : seq of Mensaje := [];
+  grabaciones : seq of Grabacion := [];
+
+inv telefono_valid * len telefono = 10 and forall ch in set elems telefono & isdigit(ch);
+
+operations
+  -- Constructor para Caso
+  public Caso: nat * String * nat * String * seq of RegistroT * seq of Mensaje * seq of Grabacion ==> Caso
+  Caso(sj, n, id_pol, tel, lls, msgs, grbs) ==
+  (
+    sop_jid := sj;
+    nombre := n;
+    id_policia := id_pol;
+    telefono := tel;
+    llamadas := lls;
+    mensajes := msgs;
+    grabaciones := grbs
+  )
+pre len tel = 10 and forall ch in set elems tel & isdigit(ch);
+
+  -- Nuevo registro telefónico
+  public AddRegistroT: RegistroT ==> ()
+  AddRegistroT(reg) ==
+    llamadas := llamadas ^ [reg];
+
+  -- Nuevo mensaje
+  public AddMensaje: Mensaje ==> ()
+  AddMensaje(msg) ==
+    mensajes := mensajes ^ [msg];
+
+  -- Nueva grabación
+  public AddGrabacion: Grabacion ==> ()
+  AddGrabacion(grab) ==
+    grabaciones := grabaciones ^ [grab];
+
+  -- Todas las comunicaciones
+  public GetComunicacionesOrdenadas: () ==> seq of (RegistroT | Mensaje)
+  GetComunicacionesOrdenadas() ==
+    return mergesort(llamadas ^ mensajes);
+
+  -- Analizar patrones de comunicación
+  public AnalizarPatronesComunicacion: () ==> map String to nat
+  AnalizarPatronesComunicacion() ==
+    let todosNumeros = [r.numero_destino | r in seq llamadas] ^
+                       [m.receptor | m in seq mensajes] in
+    return { n |-> count(n, todosNumeros) | n in set elems todosNumeros };
+
+  -- Identificar contactos frecuentes
+  public IdentificarContactosFrecuentes: nat ==> set of String
+  IdentificarContactosFrecuentes(umbral) ==
+    let patrones = AnalizarPatronesComunicacion() in
+    return { n | n in set dom patrones & patrones(n) > umbral };
+
+  -- Resumen del caso
+  public ExportarResumen: () ==> String
+  ExportarResumen() ==
+    return "Caso: " ^ nombre ^ "\n" ^
+           "ID Policía: " ^ String`natToString(id_policia) ^ "\n" ^
+           "Teléfono: " ^ telefono ^ "\n" ^
+           "Llamadas: " ^ String`natToString(len llamadas) ^ "\n" ^
+           "Mensajes: " ^ String`natToString(len mensajes) ^ "\n" ^
+           "Grabaciones: " ^ String`natToString(len grabaciones);
+
+functions
+  -- Función de ordenamiento mergesort para los registros
+  mergesort: seq of (RegistroT | Mensaje) -> seq of (RegistroT | Mensaje)
+  mergesort(s) ==
+    if len s <= 1 then s
+    else let mid = len s div 2 in
+      merge self(mergesort(s(1,...,mid)), mergesort(s(mid+1,...,len s)));
+
+  mergeSorted: seq of (RegistroT | Mensaje) * seq of (RegistroT | Mensaje) -> seq of (RegistroT | Mensaje)
+  mergeSorted(s1, s2) ==
+    if s1 = [] then s2
+    elseif s2 = [] then s1
+    elseif compararFechaHora(s1(1), s2(1)) then [s1(1)] ^ merge self(tl s1, s2)
+    else [s2(1)] ^ merge self(s1, tl s2);
+
+  -- Comparacion de fechasHoras
+  compararFechaHora: (RegistroT | Mensaje) * (RegistroT | Mensaje) -> bool
+  compararFechaHora(a, b) ==
+    if a.fecha < b.fecha then true
+    elseif a.fecha > b.fecha then false
+    else a.hora < b.hora;
+
+  -- Función auxiliar para contar ocurrencias
+  count: String * seq of String -> nat
+  count(x, s) ==
+    len [e | e in seq s & e = x];
+
+end Caso

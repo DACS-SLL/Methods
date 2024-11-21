@@ -1,0 +1,53 @@
+class RegistroT
+instance variables
+  id_regis : nat := 0;
+  numero_origen : String := "";
+  numero_destino : String := "";
+  duracion_min : nat := 0;
+  duracion_seg : nat := 0;
+  fecha : Date;
+  hora : Time;
+
+inv duracion_valid (duracion_min >= 0 and duracion_seg >= 0 and duracion_seg < 60);
+inv numeros_validos* len numero_origen = 10 and len numero_destino = 10 and 
+                      forall ch in set elems numero_origen union elems numero_destino & isdigit(ch);
+
+operations
+  -- Constructor para RegistroT
+  public RegistroT: nat * String * String * nat * nat * Date * Time ==> RegistroT
+  RegistroT(id_r, num_ori, num_dest, dur_min, dur_seg, f, h) ==
+  (
+    id_regis := id_r;
+    numero_origen := num_ori;
+    numero_destino := num_dest;
+    duracion_min := dur_min;
+    duracion_seg := dur_seg;
+    fecha := f;
+    hora := h
+  )
+pre dur_min >= 0 and dur_seg >= 0 and dur_seg < 60 and len num_ori = 10 and len num_dest = 10 and 
+    forall ch in set elems num_ori union elems num_dest & isdigit(ch);
+
+  -- Calcular la duración total en segundos
+  public DuracionTotal: () ==> nat
+  DuracionTotal() ==
+    return duracion_min * 60 + duracion_seg;
+
+  -- Verificar si la llamada es sospechosa (Tomando en cuenta que dura más de 30min)
+  public EsSospechosa: () ==> bool
+  EsSospechosa() ==
+    return DuracionTotal() > 30 * 60;
+
+  -- Clasificar la llamada por duración
+  public ClasificarLlamada: () ==> String
+  ClasificarLlamada() ==
+    let duracion = DuracionTotal() in
+    exit if duracion < 60 then "Corta"
+    elseif duracion < 300 then "Media"
+    else "Larga";
+
+  -- Verificar si la llamada ocurrió en horario de madrugada
+  public EsLlamadaNocturna: () ==> bool
+  EsLlamadaNocturna() ==
+    return hora.hour >= 22 or hora.hour < 6;
+end RegistroT

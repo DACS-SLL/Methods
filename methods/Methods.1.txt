@@ -1,0 +1,270 @@
+
+class Caso
+types
+  -- Definición de un tipo String
+  String = seq1 of char;
+
+instance variables
+  sop_jid : nat := 0;
+  nombre : String := "";
+  id_policia : nat := 0;
+  telefono : String := "";
+  llamadas : seq of RegistroT := [];
+  mensajes : seq of Mensaje := [];
+  grabaciones : seq of Grabacion := [];
+
+inv telefono_valid * len telefono = 10 and forall ch in set elems telefono & isdigit(ch);
+
+operations
+  -- Constructor para Caso
+  public Caso: nat * String * nat * String * seq of RegistroT * seq of Mensaje * seq of Grabacion ==> Caso
+  Caso(sj, n, id_pol, tel, lls, msgs, grbs) ==
+  (
+    sop_jid := sj;
+    nombre := n;
+    id_policia := id_pol;
+    telefono := tel;
+    llamadas := lls;
+    mensajes := msgs;
+    grabaciones := grbs
+  )
+pre len tel = 10 and forall ch in set elems tel & isdigit(ch);
+
+  -- Nuevo registro telefónico
+  public AddRegistroT: RegistroT ==> ()
+  AddRegistroT(reg) ==
+    llamadas := llamadas ^ [reg];
+
+  -- Nuevo mensaje
+  public AddMensaje: Mensaje ==> ()
+  AddMensaje(msg) ==
+    mensajes := mensajes ^ [msg];
+
+  -- Nueva grabación
+  public AddGrabacion: Grabacion ==> ()
+  AddGrabacion(grab) ==
+    grabaciones := grabaciones ^ [grab];
+
+  -- Todas las comunicaciones
+  public GetComunicacionesOrdenadas: () ==> seq of (RegistroT | Mensaje)
+  GetComunicacionesOrdenadas() ==
+    return mergesort(llamadas ^ mensajes);
+
+  -- Analizar patrones de comunicación
+  public AnalizarPatronesComunicacion: () ==> map String to nat
+  AnalizarPatronesComunicacion() ==
+    let todosNumeros = [r.numero_destino | r in seq llamadas] ^
+                       [m.receptor | m in seq mensajes] in
+    return { n |-> count(n, todosNumeros) | n in set elems todosNumeros };
+
+  -- Identificar contactos frecuentes
+  public IdentificarContactosFrecuentes: nat ==> set of String
+  IdentificarContactosFrecuentes(umbral) ==
+    let patrones = AnalizarPatronesComunicacion() in
+    return { n | n in set dom patrones & patrones(n) > umbral };
+
+  -- Resumen del caso
+  public ExportarResumen: () ==> String
+  ExportarResumen() ==
+    return "Caso: " ^ nombre ^ "\n" ^
+           "ID Policía: " ^ String`natToString(id_policia) ^ "\n" ^
+           "Teléfono: " ^ telefono ^ "\n" ^
+           "Llamadas: " ^ String`natToString(len llamadas) ^ "\n" ^
+           "Mensajes: " ^ String`natToString(len mensajes) ^ "\n" ^
+           "Grabaciones: " ^ String`natToString(len grabaciones);
+
+functions
+  -- Función de ordenamiento mergesort para los registros
+  mergesort: seq of (RegistroT | Mensaje) -> seq of (RegistroT | Mensaje)
+  mergesort(s) ==
+    if len s <= 1 then s
+    else let mid = len s div 2 in
+      merge self(mergesort(s(1,...,mid)), mergesort(s(mid+1,...,len s)));
+
+  mergeSorted: seq of (RegistroT | Mensaje) * seq of (RegistroT | Mensaje) -> seq of (RegistroT | Mensaje)
+  mergeSorted(s1, s2) ==
+    if s1 = [] then s2
+    elseif s2 = [] then s1
+    elseif compararFechaHora(s1(1), s2(1)) then [s1(1)] ^ merge self(tl s1, s2)
+    else [s2(1)] ^ merge self(s1, tl s2);
+
+  -- Comparacion de fechasHoras
+  compararFechaHora: (RegistroT | Mensaje) * (RegistroT | Mensaje) -> bool
+  compararFechaHora(a, b) ==
+    if a.fecha < b.fecha then true
+    elseif a.fecha > b.fecha then false
+    else a.hora < b.hora;
+
+  -- Función auxiliar para contar ocurrencias
+  count: String * seq of String -> nat
+  count(x, s) ==
+    len [e | e in seq s & e = x];
+
+end Caso
+
+
+class RegistroT
+instance variables
+  id_regis : nat := 0;
+  numero_origen : String := "";
+  numero_destino : String := "";
+  duracion_min : nat := 0;
+  duracion_seg : nat := 0;
+  fecha : Date;
+  hora : Time;
+
+inv duracion_valid (duracion_min >= 0 and duracion_seg >= 0 and duracion_seg < 60);
+inv numeros_validos* len numero_origen = 10 and len numero_destino = 10 and 
+                      forall ch in set elems numero_origen union elems numero_destino & isdigit(ch);
+
+operations
+  -- Constructor para RegistroT
+  public RegistroT: nat * String * String * nat * nat * Date * Time ==> RegistroT
+  RegistroT(id_r, num_ori, num_dest, dur_min, dur_seg, f, h) ==
+  (
+    id_regis := id_r;
+    numero_origen := num_ori;
+    numero_destino := num_dest;
+    duracion_min := dur_min;
+    duracion_seg := dur_seg;
+    fecha := f;
+    hora := h
+  )
+pre dur_min >= 0 and dur_seg >= 0 and dur_seg < 60 and len num_ori = 10 and len num_dest = 10 and 
+    forall ch in set elems num_ori union elems num_dest & isdigit(ch);
+
+  -- Calcular la duración total en segundos
+  public DuracionTotal: () ==> nat
+  DuracionTotal() ==
+    return duracion_min * 60 + duracion_seg;
+
+  -- Verificar si la llamada es sospechosa (Tomando en cuenta que dura más de 30min)
+  public EsSospechosa: () ==> bool
+  EsSospechosa() ==
+    return DuracionTotal() > 30 * 60;
+
+  -- Clasificar la llamada por duración
+  public ClasificarLlamada: () ==> String
+  ClasificarLlamada() ==
+    let duracion = DuracionTotal() in
+    exit if duracion < 60 then "Corta"
+    elseif duracion < 300 then "Media"
+    else "Larga";
+
+  -- Verificar si la llamada ocurrió en horario de madrugada
+  public EsLlamadaNocturna: () ==> bool
+  EsLlamadaNocturna() ==
+    return hora.hour >= 22 or hora.hour < 6;
+end RegistroT
+
+class Mensaje
+instance variables
+  id_msg : nat := 0;
+  emisor : String := "";
+  receptor : String := "";
+  contenido : String := "";
+  fecha : Date;
+  hora : Time;
+  verificado : bool := false;
+
+inv contenido_not_empty* contenido <> "";
+
+operations
+  -- Constructor para Mensaje
+  public Mensaje: nat * String * String * String * Date * Time * bool ==> Mensaje
+  Mensaje(id_m, emi, rec, cont, f, h, ver) ==
+  (
+    id_msg := id_m;
+    emisor := emi;
+    receptor := rec;
+    contenido := cont;
+    fecha := f;
+    hora := h;
+    verificado := ver
+  )
+pre cont <> "";
+
+  -- Buscar palabras clave en el contenido del mensaje
+  public ContienePalabraClave: seq of char ==> bool
+  ContienePalabraClave(palabra) ==
+    return exists i in set inds contenido &
+      subseq(contenido, i, len palabra) = palabra;
+
+  -- Marcar el mensaje como verificado
+  public MarcarVerificado: () ==> ()
+  MarcarVerificado() ==
+    verificado := true;
+
+  -- Analizar sentido del mensaje (Si es un mensaje positivo-negativo)
+  public AnalizarSentimiento: () ==> String
+  AnalizarSentimiento() ==
+    exit if exists palabra in set {"feliz", "alegre", "contento"} & 
+       ContienePalabraClave(palabra)
+    then "Positivo"
+    elseif exists palabra in set {"triste", "enojado", "molesto"} & 
+           ContienePalabraClave(palabra)
+    then "Negativo"
+    else "Neutral";
+
+  -- Cifrar el contenido del mensaje
+  public CifrarContenido: String ==> ()
+  CifrarContenido(clave) ==
+    contenido := [if isalpha(ch) 
+                  then encryptionStep[((nat1*(ch) * <name>*() -> <name>*(clave*((i) * clave )) * <name>*(encryptionStep)))] mod 26 + is_nat1(('a'))
+                  else ch 
+                  | i in set inds contenido* ch in set {contenido(i)}];
+
+end Mensaje
+
+class Grabacion
+instance variables
+  id_grab : nat := 0;
+  tipo : String := "";
+  duracion_min : nat := 0;
+  duracion_seg : nat := 0;
+  datos : seq of Byte := [];
+
+inv duracion_valid (duracion_min >= 0 and duracion_seg >= 0 and duracion_seg < 60);
+
+operations
+  -- Constructor para Grabacion
+  public Grabacion: nat * String * nat * nat * seq of Byte ==> Grabacion
+  Grabacion(id_g, t, dur_min, dur_seg, dts) ==
+  (
+    id_grab := id_g;
+    tipo := t;
+    duracion_min := dur_min;
+    duracion_seg := dur_seg;
+    datos := dts
+  )
+pre dur_min >= 0 and dur_seg >= 0 and dur_seg < 60;
+
+  -- Calcular la duración en seg
+  public DuracionTotal: () ==> nat
+  DuracionTotal() ==
+    return duracion_min * 60 + duracion_seg;
+
+  -- Verificar si la grabación esta sin datos
+  public EstaCorrupta: () ==> bool
+  EstaCorrupta() ==
+    return len datos = 0;
+
+  -- Obtener una muestra de los datos (primeros 100 bytes)
+  public ObtenerMuestra: () ==> seq of Byte
+  ObtenerMuestra() ==
+    return if len datos > 100 then datos(1,...,100) else datos;
+
+  -- Calidad de la grabación
+  public AnalizarCalidad: () ==> String
+  AnalizarCalidad() ==
+    exit if EstaCorrupta() then "Corrupta"
+    elseif len datos < 1000 then "Baja"
+    elseif len datos < 10000 then "Media"
+    else "Alta";
+
+  -- Comprimir datos *prototipo*
+  public ComprimirDatos: () ==> ()
+  ComprimirDatos() ==
+    datos := [d | d in seq datos & d <> 0];
+end Grabacion
+

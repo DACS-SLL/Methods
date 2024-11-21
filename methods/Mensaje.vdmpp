@@ -1,0 +1,136 @@
+class Mensaje
+types
+  Date :: 
+    day : nat
+    month : nat
+    year : nat
+  inv d == d.day >= 1 and d.day <= 31 and
+           d.month >= 1 and d.month <= 12 and
+           d.year > 0;
+
+  Time ::
+    hour : nat
+    minute : nat
+    second : nat
+  inv t == t.hour >= 0 and t.hour < 24 and
+           t.minute >= 0 and t.minute < 60 and
+           t.second >= 0 and t.second < 60;
+
+instance variables
+  id_msg : nat := 0;
+  emisor : seq1 of char  := ['a'];
+  receptor : seq1 of char  := ['a'];
+  contenido : seq1 of char  := ['a'];
+  fecha : Date := mk_Date(1, 1, 1970);
+  hora : Time := mk_Time(5,2,3);
+  verificado : bool := false;
+
+operations
+
+  public Mensaje: nat * seq1 of char * seq1 of char * seq1 of char * Date * Time * bool ==> Mensaje
+  Mensaje(id_m, emi, rec, cont, f, h, ver) ==
+  (
+    id_msg := id_m;
+    emisor := emi;
+    receptor := rec;
+    contenido := cont;
+    fecha := f;
+    hora := h;
+    verificado := ver
+  )
+  pre len cont > 0;
+
+  -- Buscar palabras clave en el contenido del mensaje
+  public ContienePalabraClave: seq of char ==> bool
+  ContienePalabraClave(palabra) ==
+    return len palabra <= len contenido and
+           exists i in set inds contenido &
+           forall j in set 1 * len palabra & 
+           contenido(i + j - 1) = palabra(j);
+
+
+
+  -- Marcar el mensaje como verificado
+  public MarcarVerificado: () ==> ()
+  MarcarVerificado() ==
+    verificado := true;
+
+  -- Analizar sentido del mensaje (positivo-negativo)
+  public AnalizarSentimiento: () ==> seq1 of char
+  AnalizarSentimiento() ==
+    return if exists palabra in set {"feliz", "alegre", "contento"} & ContienePalabraClave(palabra)
+           then "Positivo"
+           elseif exists palabra in set {"triste", "enojado", "molesto"} & ContienePalabraClave(palabra)
+           then "Negativo"
+           else "Neutral";
+
+  -- Método de cifrado con Cifrado César
+  public CifrarContenido: nat ==> ()
+  CifrarContenido(clave) ==
+    contenido := [if ch in set {'a','b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'z'}
+                  then asciiToChar(((charToAscii(ch) - charToAscii('a') + clave) mod 26) + charToAscii('a'))
+                  else ch
+                  | ch in seq contenido]
+  pre clave in set {0, ..., 25};
+
+  private charToAscii: char ==> nat
+  charToAscii(c) ==
+    return if c = 'a' then 97
+           elseif c = 'b' then 98
+           elseif c = 'c' then 99
+           elseif c = 'd' then 100
+           elseif c = 'e' then 101
+           elseif c = 'f' then 102
+           elseif c = 'g' then 103
+           elseif c = 'h' then 104
+           elseif c = 'i' then 105
+           elseif c = 'j' then 106
+           elseif c = 'k' then 107
+           elseif c = 'l' then 108
+           elseif c = 'm' then 109
+           elseif c = 'n' then 110
+           elseif c = 'o' then 111
+           elseif c = 'p' then 112
+           elseif c = 'q' then 113
+           elseif c = 'r' then 114
+           elseif c = 's' then 115
+           elseif c = 't' then 116
+           elseif c = 'u' then 117
+           elseif c = 'v' then 118
+           elseif c = 'w' then 119
+           elseif c = 'x' then 120
+           elseif c = 'y' then 121
+           elseif c = 'z' then 122
+           else 0;
+
+  private asciiToChar: nat ==> char
+  asciiToChar(n) ==
+    return if n = 97 then 'a'
+           elseif n = 98 then 'b'
+           elseif n = 99 then 'c'
+           elseif n = 100 then 'd'
+           elseif n = 101 then 'e'
+           elseif n = 102 then 'f'
+           elseif n = 103 then 'g'
+           elseif n = 104 then 'h'
+           elseif n = 105 then 'i'
+           elseif n = 106 then 'j'
+           elseif n = 107 then 'k'
+           elseif n = 108 then 'l'
+           elseif n = 109 then 'm'
+           elseif n = 110 then 'n'
+           elseif n = 111 then 'o'
+           elseif n = 112 then 'p'
+           elseif n = 113 then 'q'
+           elseif n = 114 then 'r'
+           elseif n = 115 then 's'
+           elseif n = 116 then 't'
+           elseif n = 117 then 'u'
+           elseif n = 118 then 'v'
+           elseif n = 119 then 'w'
+           elseif n = 120 then 'x'
+           elseif n = 121 then 'y'
+           elseif n = 122 then 'z'
+           else ' ';
+
+end Mensaje
