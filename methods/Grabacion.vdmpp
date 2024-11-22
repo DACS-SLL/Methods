@@ -37,7 +37,7 @@ pre dur_min >= 0 and dur_seg >= 0 and dur_seg < 60;
     return if len datos > 100 then datos(1,...,100) else datos;
 
   -- Calidad de la grabación
-  public AnalizarCalidad: () ==> String
+  public AnalizarCalidad: () ==> seq of char
   AnalizarCalidad() ==
     exit if EstaCorrupta() then "Corrupta"
     elseif len datos < 1000 then "Baja"
@@ -47,6 +47,5 @@ pre dur_min >= 0 and dur_seg >= 0 and dur_seg < 60;
   -- Comprimir datos *prototipo*
   public ComprimirDatos: () ==> ()
   ComprimirDatos() ==
-    datos := [d* d <> 0];
+    datos := [d | d in seq datos & d <> 0];
 end Grabacion
-
